@@ -1,0 +1,63 @@
+name: 'Build manifest and deploy pages'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate manifest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run manifest:gen
+
+      - name: Sign manifest
+        env:
+          ED25519_PRIV_KEY_B64: ${{ secrets.ED25519_PRIV_KEY_B64 }}
+        run: |
+          if [ -z "$ED25519_PRIV_KEY_B64" ]; then
+            echo "ED25519_PRIV_KEY_B64 is not set. Skipping manifest signing."
+            exit 0
+          fi
+          npm run manifest:sign
+
+      - name: Verify manifest
+        env:
+          ED25519_PUB_KEY_HEX: ${{ secrets.ED25519_PUB_KEY_HEX }}
+        run: |
+          if [ ! -f "docs/manifest/manifest.sig" ] || [ -z "$ED25519_PUB_KEY_HEX" ]; then
+            echo "Manifest signature or public key not available. Skipping verification."
+            exit 0
+          fi
+          npm run manifest:verify
+
+      - name: Upload docs as Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+

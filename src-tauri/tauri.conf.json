@@ -1,0 +1,99 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Rove",
+  "mainBinaryName": "rove",
+  "version": "3.2.1",
+  "identifier": "com.jelleglebbeek.youtube-dl-gui",
+  "build": {
+    "beforeDevCommand": "npm run build:isolation && npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build && npm run licenses",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "create": false,
+        "title": "Rove",
+        "width": 800,
+        "minWidth": 750,
+        "height": 900,
+        "minHeight": 650,
+        "visible": false,
+        "dragDropEnabled": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "capabilities": ["default"],
+      "pattern": {
+        "use": "isolation",
+        "options": {
+          "dir": "../dist-isolation"
+        }
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      },
+      "csp": {
+        "default-src": "'self' asset:",
+        "connect-src": "ipc: http://ipc.localhost https://*.sentry.io",
+        "img-src": "'self' asset: http://asset.localhost blob: data: http: https:",
+        "media-src": "'self' asset: http://asset.localhost blob: data: https:",
+        "frame-src": "'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://w.soundcloud.com",
+        "style-src": "'self'",
+        "font-src": "'self'",
+        "frame-ancestors": "'none'"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["nsis", "app", "dmg", "appimage", "deb", "rpm"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../licenses/3rdpartylicenses.txt": "licenses/3rdpartylicenses.txt"
+    },
+    "macOS": {
+      "signingIdentity": "Developer ID Application"
+    },
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": true,
+        "languages": [
+          "English",
+          "Spanish",
+          "Italian",
+          "Dutch",
+          "French",
+          "German",
+          "Norwegian",
+          "Russian",
+          "PortugueseBR",
+          "TradChinese",
+          "Turkish"
+        ]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY4RDkwMDI5RTNFRkYwNgpSV1FHL3o2ZUFwQ05CbWJ3TjZtQmpNNk9XS0NxY2tudHB5RFBXU21kN1pLL1JWR0l6MUhWYXhXTAo=",
+      "endpoints": [
+        "https://github.com/thiagomof/rove/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

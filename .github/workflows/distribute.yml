@@ -1,0 +1,60 @@
+name: 'Distribute'
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  distribute-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Update winget manifest
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if (-not $env:WINGET_TOKEN) {
+            Write-Host "WINGET_TOKEN secret is not set. Skipping WinGet update."
+            exit 0
+          }
+          set-strictmode -version latest
+          $ErrorActionPreference = "Stop"
+
+          $pkg = Get-Content -Raw "package.json" | ConvertFrom-Json
+          $version = $pkg.version
+
+          $tag = "app-v$version"
+          $installerUrlX64 = "https://github.com/thiagomof/rove/releases/download/$tag/Rove_${version}_x64-setup.exe"
+          Write-Host "Updating winget manifest for version $version"
+          Write-Host "Installer URL (x64): $installerUrlX64"
+
+          Invoke-WebRequest `
+            -Uri https://aka.ms/wingetcreate/latest `
+            -OutFile wingetcreate.exe
+
+          ./wingetcreate.exe update `
+            thiagomof.rove `
+            --version $version `
+            --urls $installerUrlX64 `
+            --submit `
+            --token $env:WINGET_TOKEN
+
+  distribute-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote snapcraft edge to stable
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: |
+          if [ -z "$SNAPCRAFT_STORE_CREDENTIALS" ]; then
+            echo "SNAPCRAFT_STORE_CREDENTIALS secret is not set. Skipping Snapcraft promote."
+            exit 0
+          fi
+          sudo snap install snapcraft --classic
+          set -euo pipefail
+          snapcraft whoami
+          snapcraft promote rove --from-channel=edge --to-channel=stable --yes
